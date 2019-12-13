@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 from termcolor import colored
 import argparse
 
@@ -83,12 +84,15 @@ class Instruction:
 class Program:
     def __init__(self, data):
         self.data = data.copy()
+        self.data[0] = 2
         self.pc = 0
         self.base = 0
         self.output_values = []
         self.last_modified = -1
         self.exit = False
         self.display = {}
+        self.paddlex = None
+        self.ballx = None
 
     def print_data(self):
         for i, v in enumerate(self.data):
@@ -118,8 +122,13 @@ class Program:
             self.last_modified = r
         elif insn.opcode == 3:
             # READ
-            assert False
-            print('Setting input to: %d' % input_value)
+            input_value = 0
+            if self.ballx < self.paddlex:
+                input_value = -1
+            if self.ballx > self.paddlex:
+                input_value = 1
+            # print('Setting intpu (%d/%d) to %d' % (self.ballx, self.paddlex, input_value))
+            # time.sleep(0.01)
             r = insn.store(self.pc + 1, 0, input_value)
             self.pc += 2
             self.last_modified = r
@@ -162,6 +171,24 @@ class Program:
             print('Unknown opcode: %d' % insn.opcode)
             assert False
 
+    def displayport(self):
+        for i in range(24):
+            for j in range(80):
+                v = ' '
+                t = (j, i)
+                if t in self.display and program.display[t] > 0:
+                    v = str(self.display[t])
+                    if v == '1':
+                        v = '*'
+                    elif v == '2':
+                        v = '#'
+                    elif v == '3':
+                        v = '='
+                    elif v == '4':
+                        v = 'o'
+                print(v, end = '')
+            print()
+
     def run(self):
         step = 0
         self.print_data()
@@ -175,33 +202,22 @@ class Program:
             if args.verbose:
                 self.print_data()
             if len(self.output_values) == 3:
-                pos = tuple(self.output_values[:2])
-                val = self.output_values[2]
-                if not pos in self.display:
+                if self.output_values[0] == -1:
+                    print('Score: %d' % self.output_values[2])
+                    self.displayport()
+                else:
+                    pos = tuple(self.output_values[:2])
+                    val = self.output_values[2]
+                    if not pos in self.display:
+                        self.display[pos] = 0
                     self.display[pos] = val
+                    if val == 3:
+                        self.paddlex = self.output_values[0]
+                    elif val == 4:
+                        self.ballx = self.output_values[0]
                 self.output_values = []
             if self.exit:
                 return self.last_output
 program = Program(init_data)
 program.run()
-
-def displayport():
-    global program
-    for i in range(24):
-        for j in range(80):
-            v = ' '
-            t = (j, i)
-            if t in program.display and program.display[t] > 0:
-                v = str(program.display[t])
-                if v == '1':
-                    v = '*'
-                elif v == '2':
-                    v = '#'
-                elif v == '3':
-                    v = '='
-                elif v == '4':
-                    v = 'o'
-            print(v, end = '')
-        print()
-
-displayport()
+program.displayport()
