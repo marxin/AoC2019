@@ -241,9 +241,11 @@ class Program:
         print()
 
     def do_flood_fill(self):
+        maximum = 0
+        start = (64, 38)
         flood = {}
-        flood[tuple(self.start)] = 0
-        queue = [tuple(self.start)]
+        flood[tuple(start)] = 0
+        queue = [tuple(start)]
         while(len(queue)):
             p = tuple(queue[0])
             queue = queue[1:]
@@ -257,10 +259,11 @@ class Program:
                     newpos = (x, y)
                     if not newpos in flood:
                         flood[newpos] = steps + 1
+                        if steps + 1 > maximum:
+                            maximum = steps + 1
                         queue.append(newpos)
-                        if self.display[newpos] == 2:
-                            print(steps + 1)
-                            exit(0)
+
+        print(maximum)
 
 program = Program(init_data)
 program.run()
