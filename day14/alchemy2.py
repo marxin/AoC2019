@@ -142,7 +142,7 @@ class Formula:
             components[parts[1]] = int(parts[0])
         return components
 
-maximum = 2**32
+maximum = 2**64
 
 def sum(d1, d2):
     for k, v in d2.items():
@@ -172,6 +172,8 @@ count = 0
 seen_hit = 0
 
 seen = {}
+
+trilion = 10**12
 
 # d1 >= d2
 def great_or_equal(d1, d2):
@@ -241,11 +243,16 @@ def resolve(todo, has, formulas, ores):
     if not len(list(todo.items())):
         if ores < maximum:
             print('done with %d' % ores)
+            print(todo)
+            print(has)
             maximum = ores
         return
     for todo_name, todo_value in list(todo.items()):
         for formula in formulas:
             if formula.rhs[0] == todo_name:
+                # TODO: warning
+                if count == 10 * 1000:
+                    return
                 #print('Before: %s, %s, ores: %d' % (str(todo), str(has), ores))
                 saved_todo = todo.copy()
                 saved_has = has.copy()
@@ -272,7 +279,10 @@ formulas = []
 for line in mydata.strip().split('\n'):
     formulas.append(Formula(line))
 
-resolve({'FUEL': 1}, {}, formulas, 0)
+guess = 2170500-900-63-1
+resolve({'FUEL': guess}, {}, formulas, 0)
 
 print('Iterations: %d, cached: %d' % (count, seen2_hit))
 print('Minimum: %d' % maximum)
+print('Trilion: %d' % trilion)
+print(guess)
