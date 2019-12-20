@@ -34,7 +34,7 @@ data = '''
 #################
 '''
 
-dataa = '''
+data2 = '''
 ########################
 #@..............ac.GI.b#
 ###d#e#f################
@@ -43,7 +43,7 @@ dataa = '''
 ########################
 '''
 
-dataa = '''
+data = '''
 #################################################################################
 #m....#...#...#.....#...#...............#.#...#.....#...........................#
 #.###.#.#.#.#.###.#.#.#.#####.#.#########.#.#.#.#.###.###.#.#############.#####.#
@@ -148,7 +148,7 @@ def get_me():
 def print_maze(steps, depth):
     #print('Steps: %d, depth: %d' % (steps, depth))
     for line in maze:
-        print(line, end = '')
+        print(line)
     print()
 
 def flood_fill(keys):
@@ -181,43 +181,51 @@ def flood_fill(keys):
                 flood[newpos] = steps + 1
     return reachable_keys
 
+letters = [x for x in data if ('a' <= x and x <= 'z') or ('A' <= x and x <= 'Z')]
+print(letters)
+print(len(letters))
 me = get_me()
 print_maze(0, 0)
-
-minimum = 2**50
+cache = {}
 calls = 0
-bailout = 0
+cache_hits = 0
+minimum = 2**50
 
-def walk(keys, steps, depth):
-    global maze, me, minimum, calls, bailout
-    if calls % 1000 == 0:
-        print('Calls: %d, bailouts: %d' % (calls, bailout))
+def walk(keys, steps, depth, pos):
+    global maze, me, calls, cache_hits, cache, minimum
     calls += 1
+    key = (frozenset(keys), me)
+    if calls % 1000 == 0:
+        print('Calls: %d, hits: %d (%.2f%%), cache size: %d, steps: %d' % (calls, cache_hits, 100.0 * cache_hits / calls, len(cache), steps))
+        # print_maze(steps, depth)
+    if key in cache:
+        cache_hits += 1
+        return cache[key]
     ff = flood_fill(keys)
-    # print('options: %d, depth: %d' % (len(ff) , depth))
     if len(ff) == 0:
         if steps < minimum:
             minimum = steps
             print('New minimum: %d' % minimum)
-        return
+            print(pos)
+        return 0
+    print('Depth: %d, possibilities: %d' % (depth, len(ff)))
     saved_maze = maze.copy()
     saved_me = me
-    for f in sorted(ff, key = lambda x: x[2]):
-        if steps >= minimum:
-            bailout += 1
-            return
-        if steps + f[2] >= minimum:
-            bailout += 1
-            continue
+    best = 2**50
+    for f in ff:
         set_pixel(me[0], me[1], '.')
         me = f[1]
         set_pixel(me[0], me[1], '@')
-        print_maze(steps + f[2], depth)
+        # print_maze(steps + f[2], depth)
         keys.add(f[0])
-        walk(keys, steps + f[2], depth + 1)
+        subtime = walk(keys, steps + f[2], depth + 1, pos * len(ff))
+        if subtime + f[2] < best:
+            best = subtime + f[2]
         keys.remove(f[0])
         maze = saved_maze.copy()
         me = saved_me
+    cache[key] = best
+    return best
 
-walk(set(), 0, 0)
-print('Minimum: %d, calls: %d' % (minimum, calls))
+time = walk(set(), 0, 0, 1)
+print('Minimum: %d, calls: %d' % (time, calls))
