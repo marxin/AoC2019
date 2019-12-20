@@ -34,7 +34,7 @@ data = '''
 #################
 '''
 
-data2 = '''
+data = '''
 ########################
 #@..............ac.GI.b#
 ###d#e#f################
@@ -43,7 +43,7 @@ data2 = '''
 ########################
 '''
 
-data = '''
+data2 = '''
 #################################################################################
 #m....#...#...#.....#...#...............#.#...#.....#...........................#
 #.###.#.#.#.#.###.#.#.#.#####.#.#########.#.#.#.#.###.###.#.#############.#####.#
@@ -139,11 +139,12 @@ def get_pixel(x, y):
 def set_pixel(x, y, value):
     maze[y] = maze[y][:x] + value + maze[y][x + 1:]
 
-def get_me():
+def get_positions():
     for y in range(height):
         for x in range(width):
-            if get_pixel(x,y) == '@':
-                return (x, y)            
+            value = get_pixel(x,y)
+            if value != '#' and value != '.':
+                yield (value, (x, y))
 
 def print_maze(steps, depth):
     #print('Steps: %d, depth: %d' % (steps, depth))
@@ -181,17 +182,56 @@ def flood_fill(keys):
                 flood[newpos] = steps + 1
     return reachable_keys
 
-letters = [x for x in data if ('a' <= x and x <= 'z') or ('A' <= x and x <= 'Z')]
-print(letters)
-print(len(letters))
-me = get_me()
+def get_distances(start):
+    flood = {start: (0, set())}    
+    queue = [start]
+    distances = {}
+    while len(queue):
+        pos = queue[0]
+        queue = queue[1:]
+        fl = flood[pos]
+        for m in moves:
+            newpos = (pos[0] + m[0], pos[1] + m[1])
+            if newpos in flood:
+                continue
+            pixel = get_pixel(newpos[0], newpos[1])
+            if pixel == '#':
+                pass
+            elif 'A' <= pixel and pixel <= 'Z':
+                distances[pixel] = (fl[0] + 1, fl[1].copy())
+                queue.append(newpos)
+                copy = fl[1].copy()
+                copy.add(pixel)
+                flood[newpos] = (fl[0] + 1, copy)
+            else:
+                if 'a' <= pixel and pixel <= 'z':
+                    distances[pixel] = (fl[0] + 1, fl[1].copy())
+                elif pixel == '.' or pixel == '@':
+                    pass
+                else:
+                    assert False
+                queue.append(newpos)
+                flood[newpos] = (fl[0] + 1, fl[1].copy())
+    return distances
+
+positions = dict(get_positions())
+print(positions)
+
+distance_table = {}
+for k, v in positions.items():
+    distance_table[k] = get_distances(v)
+print(distance_table)
+
+print(get_distances(positions['@']))
+
+me = positions['@']
 print_maze(0, 0)
 cache = {}
 calls = 0
 cache_hits = 0
 minimum = 2**50
 
-def walk(keys, steps, depth, pos):
+def walk(keys, steps, depth):
     global maze, me, calls, cache_hits, cache, minimum
     calls += 1
     key = (frozenset(keys), me)
@@ -206,19 +246,20 @@ def walk(keys, steps, depth, pos):
         if steps < minimum:
             minimum = steps
             print('New minimum: %d' % minimum)
-            print(pos)
         return 0
-    print('Depth: %d, possibilities: %d' % (depth, len(ff)))
+    # print('Depth: %d, possibilities: %d' % (depth, len(ff)))
     saved_maze = maze.copy()
     saved_me = me
     best = 2**50
+    if depth == 0:
+        print(ff)
     for f in ff:
         set_pixel(me[0], me[1], '.')
         me = f[1]
         set_pixel(me[0], me[1], '@')
         # print_maze(steps + f[2], depth)
         keys.add(f[0])
-        subtime = walk(keys, steps + f[2], depth + 1, pos * len(ff))
+        subtime = walk(keys, steps + f[2], depth + 1)
         if subtime + f[2] < best:
             best = subtime + f[2]
         keys.remove(f[0])
@@ -227,5 +268,5 @@ def walk(keys, steps, depth, pos):
     cache[key] = best
     return best
 
-time = walk(set(), 0, 0, 1)
+time = walk(set(), 0, 0)
 print('Minimum: %d, calls: %d' % (time, calls))
