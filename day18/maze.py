@@ -34,7 +34,7 @@ data = '''
 #################
 '''
 
-data = '''
+data3 = '''
 ########################
 #@..............ac.GI.b#
 ###d#e#f################
@@ -43,7 +43,7 @@ data = '''
 ########################
 '''
 
-data2 = '''
+data = '''
 #################################################################################
 #m....#...#...#.....#...#...............#.#...#.....#...........................#
 #.###.#.#.#.#.###.#.#.#.#####.#.#########.#.#.#.#.###.###.#.#############.#####.#
@@ -198,10 +198,9 @@ def get_distances(start):
             if pixel == '#':
                 pass
             elif 'A' <= pixel and pixel <= 'Z':
-                distances[pixel] = (fl[0] + 1, fl[1].copy())
                 queue.append(newpos)
                 copy = fl[1].copy()
-                copy.add(pixel)
+                copy.add(pixel.lower())
                 flood[newpos] = (fl[0] + 1, copy)
             else:
                 if 'a' <= pixel and pixel <= 'z':
@@ -221,52 +220,43 @@ distance_table = {}
 for k, v in positions.items():
     distance_table[k] = get_distances(v)
 print(distance_table)
-
 print(get_distances(positions['@']))
 
-me = positions['@']
 print_maze(0, 0)
-cache = {}
 calls = 0
 cache_hits = 0
 minimum = 2**50
 
-def walk(keys, steps, depth):
-    global maze, me, calls, cache_hits, cache, minimum
+def walk(letter, keys, steps, depth, cache):
+    global distance_table, calls, cache_hits, minimum
     calls += 1
-    key = (frozenset(keys), me)
-    if calls % 1000 == 0:
+    key = (frozenset(keys), letter)
+    if calls % (100 * 1000) == 0:
         print('Calls: %d, hits: %d (%.2f%%), cache size: %d, steps: %d' % (calls, cache_hits, 100.0 * cache_hits / calls, len(cache), steps))
         # print_maze(steps, depth)
     if key in cache:
         cache_hits += 1
         return cache[key]
-    ff = flood_fill(keys)
+
+    ff = [x for x in distance_table[letter].items() if x[0] not in keys and len(x[1][1] - keys) == 0]
     if len(ff) == 0:
         if steps < minimum:
             minimum = steps
             print('New minimum: %d' % minimum)
         return 0
     # print('Depth: %d, possibilities: %d' % (depth, len(ff)))
-    saved_maze = maze.copy()
-    saved_me = me
+    saved_letter = letter
     best = 2**50
     if depth == 0:
         print(ff)
     for f in ff:
-        set_pixel(me[0], me[1], '.')
-        me = f[1]
-        set_pixel(me[0], me[1], '@')
-        # print_maze(steps + f[2], depth)
         keys.add(f[0])
-        subtime = walk(keys, steps + f[2], depth + 1)
-        if subtime + f[2] < best:
-            best = subtime + f[2]
+        subtime = walk(f[0], keys, steps + f[1][0], depth + 1, cache)
+        if subtime + f[1][0] < best:
+            best = subtime + f[1][0]
         keys.remove(f[0])
-        maze = saved_maze.copy()
-        me = saved_me
     cache[key] = best
     return best
 
-time = walk(set(), 0, 0)
+time = walk('@', set(['@']), 0, 0, {})
 print('Minimum: %d, calls: %d' % (time, calls))
