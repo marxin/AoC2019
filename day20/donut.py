@@ -20,7 +20,44 @@ FG..#########.....#
              Z       
              Z       '''
 
-maze = '''                   A               
+maze = '''             Z L X W       C                 
+             Z P Q B       K                 
+  ###########.#.#.#.#######.###############  
+  #...#.......#.#.......#.#.......#.#.#...#  
+  ###.#.#.#.#.#.#.#.###.#.#.#######.#.#.###  
+  #.#...#.#.#...#.#.#...#...#...#.#.......#  
+  #.###.#######.###.###.#.###.###.#.#######  
+  #...#.......#.#...#...#.............#...#  
+  #.#########.#######.#.#######.#######.###  
+  #...#.#    F       R I       Z    #.#.#.#  
+  #.###.#    D       E C       H    #.#.#.#  
+  #.#...#                           #...#.#  
+  #.###.#                           #.###.#  
+  #.#....OA                       WB..#.#..ZH
+  #.###.#                           #.#.#.#  
+CJ......#                           #.....#  
+  #######                           #######  
+  #.#....CK                         #......IC
+  #.###.#                           #.###.#  
+  #.....#                           #...#.#  
+  ###.###                           #.#.#.#  
+XF....#.#                         RF..#.#.#  
+  #####.#                           #######  
+  #......CJ                       NM..#...#  
+  ###.#.#                           #.###.#  
+RE....#.#                           #......RF
+  ###.###        X   X       L      #.#.#.#  
+  #.....#        F   Q       P      #.#.#.#  
+  ###.###########.###.#######.#########.###  
+  #.....#...#.....#.......#...#.....#.#...#  
+  #####.#.###.#######.#######.###.###.#.#.#  
+  #.......#.......#.#.#.#.#...#...#...#.#.#  
+  #####.###.#####.#.#.#.#.###.###.#.###.###  
+  #.......#.....#.#...#...............#...#  
+  #############.#.#.###.###################  
+               A O F   N                     
+               A A D   M                     '''
+maze2 = '''                   A               
                    A               
   #################.#############  
   #.#...#...................#.#.#  
@@ -187,6 +224,7 @@ def get_teleports(x, y):
     for i in range(len(directions)):
         newx = x + directions[i][0] * 2
         newy = y + directions[i][1] * 2
+        out = newx == 0 or newx == width - 1 or newy == 0 or newy == height - 1
         if is_valid(newx, newy):
             value = lines[newy][newx]
             if 'A' <= value and value <= 'Z':
@@ -198,7 +236,7 @@ def get_teleports(x, y):
                     if i == 0 or i == 3:
                         values = list(reversed(values))
                     name = values[0] + values[1]
-                    yield (name, (x, y))
+                    yield (name, (x, y), out)
 
 print(width)
 print(height)
@@ -210,15 +248,14 @@ for y in range(height):
         ports = list(get_teleports(x, y))
         teleports += ports
 
-def ff(start, end):
+def ff(start, depth):
     flood = {}
     flood[start] = 0
     queue = [start]
+    reachable = []
     while len(queue):
         pos = queue[0]
         steps = flood[pos]
-        if pos == end:
-            return steps
         queue = queue[1:]
         for i in range(len(directions)):
             newpos = (pos[0] + directions[i][0], pos[1] + directions[i][1])
@@ -229,6 +266,46 @@ def ff(start, end):
         port = [p for p in teleports if p[1] == pos]
         if len(port) == 1:
             port = port[0]
+            if port[0] == 'ZZ' and depth != 0:
+                continue
+            if port[0] == 'AA':
+                continue
+            reachable.append((port, steps))
+    return reachable
+
+def teleport(port):
+    if port[0] == 'ZZ':
+        return port[1]
+    counterpart = [p for p in teleports if p[0] == port[0] and p[1] != port[1]]
+    assert len(counterpart) == 1
+    return counterpart[0][1]
+
+def walk(start, depth, cache, visited):
+    # print('walk: start: %s: depth: %d' % (start, depth))
+    if start == end:
+        return -1
+    t = (start, depth)
+    if t in cache:
+        return cache[t]
+    elif t in visited:
+        return 2**50
+    visited.add(t)
+    if depth > 30:
+        return 2**50
+    best = None
+    for r in sorted(ff(start, depth), key = lambda x: x[0][2]):
+        delta = -1 if r[0][2] else 1
+        if r[0][0] == 'ZZ':
+            delta = 0        
+        if depth + delta >= 0:
+            result = walk(teleport(r[0]), depth + delta, cache, visited)
+            if best == None or result + r[1] + 1 < best:
+                best = result + r[1] + 1
+    cache[t] = best
+    return best
+
+
+"""
             counterpart = [p for p in teleports if p[0] == port[0] and p[1] != port[1]]
             if len(counterpart) == 1:
                 counterpart = counterpart[0]
@@ -236,7 +313,8 @@ def ff(start, end):
                 if not newpos in flood:
                     queue.append(newpos)
                     flood[newpos] = steps + 1
-    return None 
+"""
+
 
 start = [x for x in teleports if x[0] == 'AA'][0][1]
 end = [x for x in teleports if x[0] == 'ZZ'][0][1]
@@ -244,4 +322,6 @@ print(teleports)
 print(start)
 print(end)
 
-print(ff(start, end))
+print(ff(start, 0))
+w = walk(start, 0, {}, set())
+print(w)
