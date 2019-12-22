@@ -329,19 +329,29 @@ def test_random(n, known, holes, c):
 known = set()
 holes = set()
 c = 0
-while True:
-    c += 1
-    test_random(15, known, holes, c)
 
-code = '''OR H T
-OR D J
+# 123456789
+# ABCDEFGHI
+
+#####.###########
+#####..#.########
+#####...#########
+# E & H
+
+code = '''
+NOT F T
+OR H T
+NOT C J
 AND T J
-NOT I T
+NOT B T
 OR T J
+NOT A T
+OR T J
+AND D J
 RUN
 '''
 
-program = Program(init_data, code)
+program = Program(init_data, code.lstrip())
 program.run()
 print(program.output)
 
