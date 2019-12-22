@@ -206,7 +206,7 @@ def gen_all_inputs(n, inputs, result):
                 inputs.pop()
 
 gen_all_inputs(11, [], all_inputs)
-print(all_inputs)
+#print(all_inputs)
 
 def get_value(insns, registers):
     registers = list(registers)
@@ -231,16 +231,16 @@ def tocode(insns):
     registers = 'JTABCDEFGHI'
     for i in insns:
         code += '%s %s %s\n' % (opcodes[i[0]], registers[i[1]], registers[i[2]])
-    return code + 'WALK\n'
+    return code + 'RUN\n'
 
 all_instructions = []
 for opcode in range(3):
-    for op1 in range(6+5-5):
+    for op1 in range(6+5):
         for op2 in range(2):
             if opcode != 2 and op1 == op2:
                 continue
             all_instructions.append((opcode, op1, op2))
-print(all_instructions)
+#print(all_instructions)
 print(len(all_instructions))
 
 def testall(n, selection, known):
@@ -264,14 +264,37 @@ def testall(n, selection, known):
             selection.pop()
 
 def toregisters(s):
-    assert len(s) == 4
+    assert len(s) == 9
     return tuple([False, False] + [x == '#' for x in s])
 
-asserts = [(toregisters('###.'), False),
-        (toregisters('.###'), True),
-        (toregisters('...#'), True),
-        (toregisters('#..#'), True),
-        (toregisters('##..'), False),
+asserts = [
+        # 1) .########
+        (toregisters('###.#####'), False),
+        (toregisters('.########'), True),
+        # 1.5) ..#######
+        (toregisters('##..#####'), False),
+        (toregisters('###..####'), False),
+        # 2) ...######
+        (toregisters('...######'), True),
+        (toregisters('###...###'), False),
+        (toregisters('##...####'), False),
+        (toregisters('#...#####'), False),
+        # 3) .#.#...#.
+        (toregisters('.#.#...#.'), True),
+        (toregisters('#.#.#...#'), False),
+        (toregisters('##.#.#...'), False),
+        (toregisters('###.#.#..'), False),
+        # 4) .#..#####
+        (toregisters('.#..#####'), False),
+        (toregisters('#.#..####'), False),
+        (toregisters('##.#..###'), True),
+        (toregisters('###.#..##'), False),
+        # 5) #####.##...#..###
+        (toregisters('#.##...#.'), True),
+        # 6) ..#.#####
+        (toregisters('##..#.###'), False),
+        (toregisters('###..#.##'), False),
+        (toregisters('#..#.####'), True),
         ]
 
 def verify_code(code):
@@ -280,15 +303,11 @@ def verify_code(code):
             return False
     return True
 
-#####...#########
-#####.###########
-#####..#.########
-
 import random
 random.seed(0)
 def test_random(n, known, holes, c):
-    if c % 100 == 0:
-        print(c)
+    if c % 100000 == 0:
+        print('N: %d, known: %d' % (c, len(known)))
     code = [random.choice(all_instructions) for _ in range(n)]
     if not verify_code(code):
         return
@@ -304,7 +323,7 @@ def test_random(n, known, holes, c):
         if not end in holes:
             print(end)
             holes.add(end)
-            print('New %d: %s' % (len(known), str()))
+            print('New %d: %s' % (len(holes), str()))
         assert "Didn't" in program.output
 
 known = set()
@@ -312,7 +331,7 @@ holes = set()
 c = 0
 while True:
     c += 1
-    test_random(4, known, holes, c)
+    test_random(15, known, holes, c)
 
 code = '''OR H T
 OR D J
