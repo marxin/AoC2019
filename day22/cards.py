@@ -1,28 +1,5 @@
 #!/usr/bin/env python3
 
-N = 10007
-cards = list(range(N))
-
-def stack(cards):
-    return list(reversed(cards))
-
-def cut(cards, n):
-    return cards[n:] + cards[:n]
-
-def modulate(cards, n):
-    shuffle = [None] * len(cards)
-    i = 0
-    k = 0
-    while True:
-        if shuffle[i] != None:
-            break
-        shuffle[i] = k
-        k += 1
-        i += n
-        if i >= len(cards):
-            i -= len(cards)
-    return [cards[i] for i in shuffle]
-
 input = '''
 deal with increment 15
 cut -4394
@@ -126,19 +103,42 @@ deal into new stack
 cut -2244
 '''
 
+N = 119315717514047
+times = 101741582076661
+
+offset_diff = 0
+increment_mult = 1
+
+def inv(n):
+    return pow(n, N - 2, N)
+
 for operation in input.strip().split('\n'):
     parts = operation.split(' ')
     if parts[0] == 'cut':
         parts = operation.split(' ')
         n = int(parts[1])
-        cards = cut(cards, n)
+        offset_diff += (n * increment_mult)
+        offset_diff %= N
     elif parts[2] == 'increment':
         n = int(parts[3])
-        cards = modulate(cards, n)
+        increment_mult *= inv(n)
+        increment_mult %= N
     elif parts[3] == 'stack':
-        cards = stack(cards)
+        increment_mult *= -1
+        increment_mult %= N
+        offset_diff += increment_mult
+        offset_diff %= N
     else:
         assert False
 
-print(cards.index(2019))
-print(cards[2019])
+def get_value(offset, increment, n):
+    return (offset + n * increment) % N
+
+print(increment_mult)
+print(offset_diff)
+
+increment = pow(increment_mult, times, N)
+offset = offset_diff * (1 - pow(increment_mult, times, N)) * inv((1 - increment_mult) % N)
+offset %= N
+
+print(get_value(offset, increment, 2020))
